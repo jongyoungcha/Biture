@@ -34,6 +34,7 @@ void desc_print()
 {
     printf("desc_print()\n");
 }
+
 int func_replay(struct btr_command* pcmd, int argc, char* argv[]);
 int func_print(struct btr_command* pcmd, int argc, char* argv[]);
 
@@ -213,10 +214,9 @@ int main(int argc, char* argv[])
 		cmd_user = argv[1];
 		for (i=0; i<CMD_SIZE; i++)
 		{
-			printf("cmd:%s, argv[1]:%s\n", cmds[i].cmd, cmd_user);
 			if(strncmp(cmds[i].cmd, cmd_user, strlen(cmds[i].cmd)) == 0)
 			{
-				printf("found the command\n");
+				printf("found the command(command : %s)\n", cmd_user);
 				pcmd = &cmds[i];
 				break;
 			}
