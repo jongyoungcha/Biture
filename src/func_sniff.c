@@ -1,9 +1,18 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/ip.h>
+#include <netinet/tcp.h>
+#include <net/ethernet.h>
+#include <netinet/udp.h>
+#include <netinet/ip_icmp.h>
+
 #include <pcap.h>
+#include <time.h>
 
 #ifdef __APPLE__
 #include <mach/error.h>
@@ -17,14 +26,63 @@
 #include <getopt.h>
 
 
-char _interface[128]={0};
-char _dump_path[8192]={0};
+int _is_run_sniff = 1;
+char _interface[128] = {0};
+char _dump_path[8192] = {0};
 FILE* _fp_todump = NULL;
 
 
+void packet_handler(u_char *param, const struct pcap_pkthdr *header, const u_char *pkt_data)
+{
+	struct ether_header *peh = NULL;
+	struct ip *piph = NULL;
+	struct tcphdr *ptcph = NULL;
+	unsigned short ether_type;
+	int chcnt =0;
+	int length=header->len;	
+
+	peh = (struct ether_header*)pkt_data;
+	pkt_data += sizeof(struct ether_header);
+
+	ether_type = ntohs(peh->ether_type);
+	if (ether_type == ETHERTYPE_IP)
+	{
+		fprintf(stdout, "This is ethernet packet!!\n");
+		piph = (struct ip*)pkt_data;
+		printf("IP packet\n");
+		printf("Version : %d\n", piph->ip_v);
+		printf("Header Len : %d\n", piph->ip_hl);
+		printf("Ident      : %d\n", ntohs(piph->ip_id));
+		printf("TTL      : %d\n", ntohs(piph->ip_ttl));
+		printf("Src Address : %s\n", inet_ntoa(piph->ip_src));
+		printf("Dst Address : %s\n", inet_ntoa(piph->ip_dst));
+
+		if (piph->ip_p == IPPROTO_TCP)
+		{
+			ptcph = (struct tcphdr*)(pkt_data + piph->ip_hl * 4);
+			printf("Src Port : %d\n", ntohs(ptcph->source));
+			printf("Dst Port : %d\n", ntohs(ptcph->dest));
+		}
+
+		while(length--)
+		{
+			printf("%02x ", *(pkt_data++));
+			if((++chcnt % 16) == 0)
+			{
+				printf("\n");
+			}
+		}
+	}
+	else
+	{
+		fprintf(stdout, "This is not ethernet packet!!\n");
+	}
+
+	return;
+}
+
 int func_sniff_parse_args(btr_command_t* pcmd, int argc, char* argv[])
 {
-	int ret = 0;
 	int i=0;
 	int opt = 0;
 	char opts[10] = {0};
@@ -37,6 +95,7 @@ int func_sniff_parse_args(btr_command_t* pcmd, int argc, char* argv[])
 	printf("%s\n", opts);
 
 
+
 	while((opt = getopt(argc, argv, "i:d:")) != -1)
 	{
 		switch(opt)
@@ -45,7 +104,6 @@ int func_sniff_parse_args(btr_command_t* pcmd, int argc, char* argv[])
 			snprintf(_interface, sizeof(_interface), "%s",optarg);
 			printf("Getted nic interface : %s\n", _interface);
 			break;
-			
 			
 		case 'd':
 			snprintf(_dump_path, sizeof(_dump_path), "%s", optarg);
@@ -68,6 +126,10 @@ int func_sniff_parse_args(btr_command_t* pcmd, int argc, char* argv[])
 	return 0;
 }
 
+
+
+
+
 int func_sniff(btr_command_t* pcmd, int argc, char* argv[])
 {
 	int ret = 0;
@@ -87,7 +149,7 @@ int func_sniff(btr_command_t* pcmd, int argc, char* argv[])
 		return -1;
 	}
 
-	if (pcap_findalldevs(&pdev, err_buff) == -1)
+	if (pcap_findalldevs(&pdev_all, err_buff) == -1)
 	{
 		fprintf(stderr, "Finding All nic devs was failed...\n");
 		return -1;
@@ -106,18 +168,26 @@ int func_sniff(btr_command_t* pcmd, int argc, char* argv[])
 
     if (found_nic)
     {
-		pnic = pcap_open_live(pdev->name,65536, 1, 1000, err_buff);
-
-		pcap_freealldevs(pdev_all);
-	
+		pnic = pcap_open_live(pdev->name, 65536, 1, 1000, err_buff);
 		if (pnic == NULL)
 		{
 			fprintf(stderr, "pcap_open_live() failed...(err msg : %s)\n", err_buff);
+			if (pdev_all) pcap_freealldevs(pdev_all);
 			return -1;
 		}
+		else
+		{
+			pcap_loop(pnic, 0, packet_handler, NULL);
+
+			while(1)
+			{
+				sleep(1);
+			}
+		}
     }
-    else
-    {
-		return 0;
-    }
+	else
+	{
+		fprintf(stderr, "Could not find any nic...\n");
+	}
+	return -1;
 }

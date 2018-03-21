@@ -22,6 +22,7 @@ void desc_sniff()
 	printf("Valid options:\n");
 	printf("-i [--interface] : a nic interface from this system.\n");
 	printf("-d [--dumppath] : a path of dump file.\n");
+	printf("-f [--filter] : a filter string used sniffing\n");
 	printf("\n");
 }
 
@@ -165,7 +166,6 @@ void print_packet_handler(u_char* args, const struct pcap_pkthdr *packet_header,
 
     return;
 }
-
 
 
 
