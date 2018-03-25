@@ -72,7 +72,7 @@ int ants_str2hex(char* str, char* str_hex, int len_limit, char* delimit)
     {
 		if (++len_hex > len_limit)
 		{
-			/* fprintf(stderr, "Length of hex was longer than limit.\n"); */
+			fprintf(stderr, "Length of hex was longer than limit.\n");
 			return -1;
 		}
 	
@@ -166,7 +166,6 @@ void print_packet_handler(u_char* args, const struct pcap_pkthdr *packet_header,
 
     return;
 }
-
 
 
 int func_replay(struct btr_command* pcmd, int argc, char* argv[])
