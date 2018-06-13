@@ -1,14 +1,14 @@
-CC = gcc
-OBJS = main.o biture_common.o func_sniff.o 
-CFLAGS = -g -I./
+CC = g++
+OBJS = main.o BtrMenuPrinter.o BtrSummaryPrinter.o BtrSniffFeature.o 
+CPPFLAGS = -g -std='c++1y' -I./ 
 TARGET = main
 
-.SUFFIXES : .c .o
+.SUFFIXES : .cpp .o
 
 all : $(TARGET)
 
 $(TARGET) : $(OBJS)
-	$(CC) $(FLAGS) -o $@ $(OBJS) -lpcap
+	$(CC) $(CPPFLAGS) -o $@ $(OBJS) -lpcap
 
 clean :
 	rm -rf $(OBJS) $(TARGET)
